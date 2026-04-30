@@ -1,0 +1,177 @@
+<div class="animate-up">
+  <div class="flex-between mb-3">
+    <div>
+      <h1 class="page-title">My Progress</h1>
+      <p class="page-sub">Track your quiz performance and study habits</p>
+    </div>
+    <a href="/ai/dashboard" class="btn btn-primary"><i class="fas fa-plus"></i> New Analysis</a>
+  </div>
+
+  <!-- Stats row -->
+  <div class="grid-4 mb-3">
+    <div class="stat-card">
+      <div class="stat-icon purple"><i class="fas fa-file-alt"></i></div>
+      <div class="stat-num"><%= totalNotes %></div>
+      <div class="stat-label">Notes Analyzed</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon teal"><i class="fas fa-check-circle"></i></div>
+      <div class="stat-num"><%= quizResults.length %></div>
+      <div class="stat-label">Quizzes Taken</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon yellow"><i class="fas fa-star"></i></div>
+      <div class="stat-num"><%= avgScore %>%</div>
+      <div class="stat-label">Avg Score</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon red"><i class="fas fa-fire"></i></div>
+      <div class="stat-num"><%= user ? user.streak : 0 %></div>
+      <div class="stat-label">Day Streak</div>
+    </div>
+  </div>
+
+  <!-- Charts row -->
+  <div class="grid-2 mb-3">
+    <div class="card">
+      <div class="section-title mb-2"><i class="fas fa-chart-line" style="color:var(--purple)"></i> Quiz Scores Over Time</div>
+      <% if(quizResults.length === 0){ %>
+        <div class="text-center" style="padding:40px 0;color:var(--text3);">
+          <i class="fas fa-chart-line" style="font-size:2rem;margin-bottom:8px;display:block;"></i>
+          Take a quiz to see your progress
+        </div>
+      <% } else { %>
+        <canvas id="scoreChart" height="200"></canvas>
+      <% } %>
+    </div>
+    <div class="card">
+      <div class="section-title mb-2"><i class="fas fa-chart-pie" style="color:var(--teal)"></i> Difficulty Distribution</div>
+      <% if(allHistory.length === 0){ %>
+        <div class="text-center" style="padding:40px 0;color:var(--text3);">
+          <i class="fas fa-chart-pie" style="font-size:2rem;margin-bottom:8px;display:block;"></i>
+          Analyze some notes to see distribution
+        </div>
+      <% } else { %>
+        <canvas id="diffChart" height="200"></canvas>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- Recent quiz results table -->
+  <% if(quizResults.length > 0){ %>
+  <div class="card mb-3">
+    <div class="section-title mb-2"><i class="fas fa-history" style="color:var(--purple)"></i> Recent Quiz Results</div>
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border);">
+            <th style="text-align:left;padding:10px 12px;color:var(--text2);font-weight:500;">Topic</th>
+            <th style="text-align:center;padding:10px 12px;color:var(--text2);font-weight:500;">Score</th>
+            <th style="text-align:center;padding:10px 12px;color:var(--text2);font-weight:500;">Percent</th>
+            <th style="text-align:center;padding:10px 12px;color:var(--text2);font-weight:500;">Time</th>
+            <th style="text-align:left;padding:10px 12px;color:var(--text2);font-weight:500;">Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% quizResults.forEach(r => { %>
+          <tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:10px 12px;font-weight:500;"><%= r.title || (r.history && r.history.title) || 'Quiz' %></td>
+            <td style="padding:10px 12px;text-align:center;"><%= r.score %>/<%= r.total %></td>
+            <td style="padding:10px 12px;text-align:center;">
+              <span class="badge badge-<%= r.percent >= 80 ? 'teal' : r.percent >= 60 ? 'purple' : 'red' %>">
+                <%= r.percent %>%
+              </span>
+            </td>
+            <td style="padding:10px 12px;text-align:center;color:var(--text3);"><%= r.timeTaken %>s</td>
+            <td style="padding:10px 12px;color:var(--text3);"><%= new Date(r.createdAt).toLocaleDateString() %></td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <% } %>
+
+  <!-- Notes list with readability -->
+  <% if(allHistory.length > 0){ %>
+  <div class="card">
+    <div class="section-title mb-2"><i class="fas fa-list" style="color:var(--teal)"></i> All Notes Overview</div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <% allHistory.forEach(h => { %>
+        <div class="flex-between" style="padding:10px 14px;background:var(--bg);border-radius:8px;border:1px solid var(--border);">
+          <div class="flex-gap">
+            <i class="fas fa-file-alt" style="color:var(--teal);"></i>
+            <span style="font-size:14px;font-weight:500;"><%= h.title %></span>
+            <span class="badge badge-<%= h.difficulty === 'hard' ? 'red' : h.difficulty === 'easy' ? 'teal' : 'purple' %>"><%= h.difficulty || 'medium' %></span>
+          </div>
+          <div class="flex-gap">
+            <span class="text-muted" style="font-size:12px;"><%= h.wordCount || 0 %> words</span>
+            <span class="text-muted" style="font-size:12px;"><%= new Date(h.createdAt).toLocaleDateString() %></span>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+  </div>
+  <% } %>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+const isDark = document.body.classList.contains('dark');
+const gridColor  = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+const labelColor = isDark ? '#a8a6c0' : '#666';
+
+// Score chart
+<% if(quizResults.length > 0){ %>
+const scoreCtx = document.getElementById('scoreChart').getContext('2d');
+new Chart(scoreCtx, {
+  type: 'line',
+  data: {
+    labels: <%- JSON.stringify(quizResults.map((r,i) => `Quiz ${quizResults.length - i}`).reverse()) %>,
+    datasets: [{
+      label: 'Score %',
+      data: <%- JSON.stringify(quizResults.map(r => r.percent).reverse()) %>,
+      borderColor: '#5c4ee8',
+      backgroundColor: 'rgba(92,78,232,0.1)',
+      fill: true,
+      tension: 0.4,
+      pointBackgroundColor: '#5c4ee8',
+      pointRadius: 5,
+    }]
+  },
+  options: {
+    responsive: true,
+    scales: {
+      y: { min: 0, max: 100, grid: { color: gridColor }, ticks: { color: labelColor, callback: v => v+'%' } },
+      x: { grid: { color: gridColor }, ticks: { color: labelColor } }
+    },
+    plugins: { legend: { display: false } }
+  }
+});
+<% } %>
+
+// Difficulty pie chart
+<% if(allHistory.length > 0){ %>
+const diffCtx = document.getElementById('diffChart').getContext('2d');
+const easy   = <%= allHistory.filter(h => h.difficulty === 'easy').length %>;
+const medium = <%= allHistory.filter(h => h.difficulty === 'medium').length %>;
+const hard   = <%= allHistory.filter(h => h.difficulty === 'hard').length %>;
+new Chart(diffCtx, {
+  type: 'doughnut',
+  data: {
+    labels: ['Easy', 'Medium', 'Hard'],
+    datasets: [{
+      data: [easy, medium, hard],
+      backgroundColor: ['#00bfa5', '#5c4ee8', '#ff6b6b'],
+      borderWidth: 0,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { position: 'bottom', labels: { color: labelColor, padding: 16, font: { size: 12 } } }
+    }
+  }
+});
+<% } %>
+</script>

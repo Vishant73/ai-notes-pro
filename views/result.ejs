@@ -1,0 +1,195 @@
+<div class="animate-up">
+  <!-- Top bar -->
+  <div class="flex-between mb-3">
+    <div>
+      <h1 class="page-title"><%= item.title %></h1>
+      <div class="flex-gap" style="margin-top:6px;">
+        <span class="badge badge-<%= item.difficulty === 'hard' ? 'red' : item.difficulty === 'easy' ? 'teal' : 'purple' %>">
+          <i class="fas fa-sliders-h"></i> <%= item.difficulty || 'medium' %> difficulty
+        </span>
+        <span class="text-muted"><i class="fas fa-calendar-alt"></i> <%= new Date(item.createdAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}) %></span>
+        <% if(item.wordCount){ %><span class="text-muted"><i class="fas fa-font"></i> <%= item.wordCount %> words</span><% } %>
+        <% if(item.readability){ %>
+          <span class="badge" style="background:rgba(0,0,0,0.05);color:<%- rl.color %>;">
+            <i class="fas fa-book-reader"></i> <%= rl.label %>
+          </span>
+        <% } %>
+      </div>
+    </div>
+    <div class="flex-gap">
+      <a href="/ai/quiz/<%= item._id %>" class="btn btn-teal"><i class="fas fa-play-circle"></i> Take Quiz</a>
+      <a href="/ai/export/<%= item._id %>" class="btn btn-primary"><i class="fas fa-file-pdf"></i> Download PDF</a>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="result-tabs mb-3">
+    <button class="r-tab active" onclick="showTab('summary',this)"><i class="fas fa-list-ul"></i> Summary</button>
+    <button class="r-tab" onclick="showTab('keywords',this)"><i class="fas fa-tags"></i> Keywords</button>
+    <button class="r-tab" onclick="showTab('flashcards',this)"><i class="fas fa-clone"></i> Flashcards</button>
+    <button class="r-tab" onclick="showTab('mcqs',this)"><i class="fas fa-question-circle"></i> MCQs Preview</button>
+  </div>
+
+  <!-- Summary Tab -->
+  <div id="tab-summary" class="tab-panel active">
+    <div class="card">
+      <div class="section-title mb-2"><i class="fas fa-list-ul" style="color:var(--purple)"></i> AI Summary</div>
+      <div id="summaryContent">
+        <% const bullets = (item.summary || '').split('\n').filter(b => b.trim()); %>
+        <% if(bullets.length > 0){ %>
+          <ul style="list-style:none;display:flex;flex-direction:column;gap:10px;">
+            <% bullets.forEach(b => { %>
+              <li style="display:flex;gap:10px;align-items:flex-start;padding:12px 14px;background:var(--bg);border-radius:8px;border-left:3px solid var(--purple);font-size:14px;line-height:1.6;">
+                <i class="fas fa-chevron-right" style="color:var(--purple);margin-top:3px;flex-shrink:0;"></i>
+                <%= b.replace(/^[•\-\*]\s*/, '') %>
+              </li>
+            <% }) %>
+          </ul>
+        <% } else { %>
+          <p class="text-muted">No summary available.</p>
+        <% } %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Keywords Tab -->
+  <div id="tab-keywords" class="tab-panel" style="display:none">
+    <div class="card">
+      <div class="section-title mb-2"><i class="fas fa-tags" style="color:var(--teal)"></i> Key Terms — TF-IDF Extracted</div>
+      <p class="text-muted mb-2" style="font-size:13px;">These are the most important terms from your notes, ranked by frequency and uniqueness.</p>
+      <div class="keyword-list">
+        <% (item.keywords || []).forEach((kw, i) => { %>
+          <span class="keyword-chip" style="animation-delay:<%= i * 0.05 %>s"><%= kw %></span>
+        <% }) %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Flashcards Tab -->
+  <div id="tab-flashcards" class="tab-panel" style="display:none">
+    <div class="card">
+      <div class="section-title mb-2"><i class="fas fa-clone" style="color:var(--teal)"></i> Flashcards <span class="text-muted" style="font-size:13px;font-weight:400;">— Click a card to flip it</span></div>
+      <div class="grid-2" style="margin-top:16px;">
+        <%
+          const rawCards = item.flashcards || [];
+          let cards = [], card = [];
+          rawCards.forEach(line => {
+            if (/^Q:/i.test(line.trim()) && card.length) { cards.push(card.join('\n')); card = []; }
+            card.push(line);
+          });
+          if(card.length) cards.push(card.join('\n'));
+        %>
+        <% cards.forEach((c, i) => {
+          const lines = c.split('\n');
+          const q = (lines.find(l => /^Q:/i.test(l)) || '').replace(/^Q:\s*/i,'');
+          const a = (lines.find(l => /^A:/i.test(l)) || '').replace(/^A:\s*/i,'');
+        %>
+          <div class="flashcard" onclick="this.classList.toggle('flipped')" title="Click to flip">
+            <div class="flashcard-inner">
+              <div class="flashcard-front">
+                <div class="text-muted" style="font-size:12px;margin-bottom:8px;"><i class="fas fa-question-circle" style="color:var(--purple)"></i> Card <%= i+1 %></div>
+                <div style="font-weight:600;font-size:14px;line-height:1.6;"><%= q %></div>
+                <div class="text-muted" style="font-size:12px;margin-top:12px;"><i class="fas fa-hand-pointer"></i> Click to reveal answer</div>
+              </div>
+              <div class="flashcard-back">
+                <div style="font-size:12px;margin-bottom:8px;opacity:0.8;"><i class="fas fa-check-circle"></i> Answer</div>
+                <div style="font-size:14px;line-height:1.6;"><%= a %></div>
+              </div>
+            </div>
+          </div>
+        <% }) %>
+      </div>
+    </div>
+  </div>
+
+  <!-- MCQ Preview Tab -->
+  <div id="tab-mcqs" class="tab-panel" style="display:none">
+    <div class="card">
+      <div class="flex-between mb-2">
+        <div class="section-title"><i class="fas fa-question-circle" style="color:var(--purple)"></i> MCQs Preview</div>
+        <a href="/ai/quiz/<%= item._id %>" class="btn btn-teal"><i class="fas fa-play-circle"></i> Take Interactive Quiz</a>
+      </div>
+      <%
+        const rawMcqs = item.mcqs || [];
+        let blocks = [], blk = [];
+        rawMcqs.forEach(line => {
+          if (/^Q\d+:/i.test(line.trim()) && blk.length) { blocks.push(blk); blk = []; }
+          blk.push(line);
+        });
+        if(blk.length) blocks.push(blk);
+      %>
+      <% blocks.forEach((block, qi) => {
+        const qLine = block[0] || '';
+        const opts  = block.filter(l => /^[A-D]\)/i.test(l.trim()));
+        const ansLine = block.find(l => /^answer:/i.test(l.trim())) || '';
+        const ansLetter = (ansLine.match(/Answer:\s*([A-D])/i) || [])[1] || '';
+      %>
+        <div style="padding:16px;background:var(--bg);border-radius:10px;margin-bottom:12px;border-left:3px solid var(--purple)">
+          <div style="font-weight:600;font-size:14px;margin-bottom:10px;"><%= qLine.replace(/^Q\d+:\s*/i,'') %></div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <% opts.forEach(opt => {
+              const letter = (opt.trim()[0] || '').toUpperCase();
+              const isAns  = letter === ansLetter;
+            %>
+              <div style="padding:8px 12px;border-radius:6px;font-size:13px;
+                background:<%= isAns ? 'rgba(0,191,165,0.1)' : 'var(--bg2)' %>;
+                border:1px solid <%= isAns ? 'var(--teal)' : 'var(--border)' %>;
+                color:<%= isAns ? 'var(--teal)' : 'var(--text)' %>;
+                font-weight:<%= isAns ? '600' : '400' %>;">
+                <%= opt %> <%= isAns ? '✓' : '' %>
+              </div>
+            <% }) %>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+  </div>
+
+  <!-- Related Notes -->
+  <% if(related && related.length > 0){ %>
+  <div style="margin-top:32px;">
+    <div class="section-title mb-2"><i class="fas fa-sitemap" style="color:var(--purple)"></i> Related Notes <span class="text-muted" style="font-size:13px;font-weight:400;">— Cosine similarity</span></div>
+    <div class="grid-3">
+      <% related.forEach(r => { %>
+        <a href="/ai/result/<%= r._id %>" class="history-card" style="text-decoration:none;display:block;">
+          <div style="font-weight:600;font-size:14px;margin-bottom:6px;color:var(--text);"><i class="fas fa-file-alt" style="color:var(--teal);margin-right:6px;"></i><%= r.title %></div>
+          <div class="keyword-list" style="margin-top:6px;">
+            <% (r.keywords || []).slice(0,4).forEach(k => { %>
+              <span class="keyword-chip" style="font-size:11px;padding:2px 8px;"><%= k %></span>
+            <% }) %>
+          </div>
+        </a>
+      <% }) %>
+    </div>
+  </div>
+  <% } %>
+
+  <!-- Bottom actions -->
+  <div class="flex-gap mt-3" style="padding-top:20px;border-top:1px solid var(--border);">
+    <a href="/ai/history"   class="btn btn-ghost"><i class="fas fa-arrow-left"></i> History</a>
+    <a href="/ai/dashboard" class="btn btn-ghost"><i class="fas fa-plus"></i> New Analysis</a>
+    <a href="/ai/quiz/<%= item._id %>" class="btn btn-teal"><i class="fas fa-play-circle"></i> Take Quiz</a>
+    <a href="/ai/export/<%= item._id %>" class="btn btn-primary"><i class="fas fa-file-pdf"></i> Download PDF</a>
+  </div>
+</div>
+
+<style>
+.result-tabs { display:flex;gap:6px;flex-wrap:wrap; }
+.r-tab {
+  padding:9px 18px;border-radius:8px;border:1px solid var(--border);
+  background:var(--bg2);color:var(--text2);font-size:13px;font-weight:500;
+  cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:6px;
+  font-family:var(--font);
+}
+.r-tab:hover { background:var(--bg3); }
+.r-tab.active { background:var(--purple);color:white;border-color:var(--purple); }
+</style>
+
+<script>
+function showTab(id, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.style.display = 'none');
+  document.querySelectorAll('.r-tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id).style.display = 'block';
+  btn.classList.add('active');
+}
+</script>

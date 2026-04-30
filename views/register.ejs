@@ -1,0 +1,49 @@
+<div class="auth-wrap">
+  <div class="auth-side animate-up">
+    <div class="logo-icon" style="width:56px;height:56px;font-size:24px;border-radius:16px;background:linear-gradient(135deg,var(--purple),var(--teal));display:flex;align-items:center;justify-content:center;color:white;">
+      <i class="fas fa-graduation-cap"></i>
+    </div>
+    <h1>Join AI Notes Pro 🎓</h1>
+    <p>Create your free account and start studying smarter with AI-powered tools.</p>
+    <div style="background:var(--bg3);border-radius:var(--radius);padding:20px;margin-top:8px;">
+      <div style="font-weight:600;margin-bottom:12px;font-size:14px;">✅ What you get for free:</div>
+      <div style="display:flex;flex-direction:column;gap:10px;font-size:13px;color:var(--text2);">
+        <div><i class="fas fa-check" style="color:var(--teal);margin-right:8px;"></i>Unlimited note analyses</div>
+        <div><i class="fas fa-check" style="color:var(--teal);margin-right:8px;"></i>Auto MCQ + flashcard generation</div>
+        <div><i class="fas fa-check" style="color:var(--teal);margin-right:8px;"></i>PDF study pack download</div>
+        <div><i class="fas fa-check" style="color:var(--teal);margin-right:8px;"></i>Quiz scoring & progress charts</div>
+        <div><i class="fas fa-check" style="color:var(--teal);margin-right:8px;"></i>TF-IDF keyword extraction</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card animate-up delay-1">
+    <h2 style="font-family:var(--font-h);font-size:1.5rem;font-weight:700;margin-bottom:6px;">Create account</h2>
+    <p class="text-muted mb-3">It's free and always will be</p>
+
+    <% if (error) { %>
+      <div class="alert alert-error"><i class="fas fa-exclamation-circle"></i> <%= error %></div>
+    <% } %>
+
+    <form method="POST" action="/register">
+      <div class="form-group">
+        <label><i class="fas fa-user"></i> Full Name</label>
+        <input type="text" name="name" placeholder="Vishant Chouhan" required>
+      </div>
+      <div class="form-group">
+        <label><i class="fas fa-envelope"></i> Email</label>
+        <input type="email" name="email" placeholder="you@example.com" required autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label><i class="fas fa-lock"></i> Password <span class="text-muted">(min 6 chars)</span></label>
+        <input type="password" name="password" placeholder="••••••••" required minlength="6" autocomplete="new-password">
+      </div>
+      <button type="submit" class="btn btn-primary btn-full btn-lg" style="margin-top:8px;">
+        <i class="fas fa-rocket"></i> Create Free Account
+      </button>
+    </form>
+
+    <hr class="divider">
+    <p class="text-center text-muted">Already have an account? <a href="/login" style="color:var(--purple);font-weight:600;">Login here</a></p>
+  </div>
+</div>

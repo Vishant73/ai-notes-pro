@@ -1,0 +1,153 @@
+<div class="animate-up">
+  <!-- Header -->
+  <div class="flex-between mb-3">
+    <div>
+      <h1 class="page-title">Dashboard</h1>
+      <p class="page-sub">Paste your notes below or upload a .txt / .pdf file to get started</p>
+    </div>
+    <div class="flex-gap">
+      <% if(totalNotes > 0){ %>
+        <span class="badge badge-teal"><i class="fas fa-file-alt"></i> <%= totalNotes %> notes</span>
+      <% } %>
+      <% if(totalQuizzes > 0){ %>
+        <span class="badge badge-purple"><i class="fas fa-check-circle"></i> <%= totalQuizzes %> quizzes</span>
+      <% } %>
+    </div>
+  </div>
+
+  <% if(typeof error !== 'undefined' && error){ %>
+    <div class="alert alert-error mb-2"><i class="fas fa-exclamation-circle"></i> <%= error %></div>
+  <% } %>
+
+  <!-- Main Form -->
+  <div class="card mb-3" style="border-top:3px solid var(--purple)">
+    <form method="POST" action="/ai/analyze" enctype="multipart/form-data" id="analyzeForm">
+
+      <!-- Title + Difficulty Row -->
+      <div class="grid-2" style="gap:16px;margin-bottom:18px;">
+        <div class="form-group" style="margin-bottom:0">
+          <label><i class="fas fa-heading"></i> Notes Title</label>
+          <input type="text" name="title" placeholder="e.g. Chapter 5 — Operating Systems" maxlength="100">
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label><i class="fas fa-sliders-h"></i> Quiz Difficulty</label>
+          <select name="difficulty">
+            <option value="easy">🟢 Easy — Fill in the blank</option>
+            <option value="medium" selected>🟡 Medium — Choose correct term</option>
+            <option value="hard">🔴 Hard — Concept identification</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Text area -->
+      <div class="form-group">
+        <label><i class="fas fa-align-left"></i> Your Notes <span class="text-muted">(paste text here)</span></label>
+        <textarea name="text" id="notesText" placeholder="Paste your study notes here...&#10;&#10;Tip: The more text you provide, the better the summary and MCQs will be. Minimum 30 characters." rows="10"></textarea>
+        <div class="flex-between mt-1">
+          <span class="text-muted" id="charCount">0 characters</span>
+          <span class="text-muted">Minimum 30 chars</span>
+        </div>
+      </div>
+
+      <!-- Upload zone -->
+      <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+        <div class="icon"><i class="fas fa-cloud-upload-alt"></i></div>
+        <p><strong>Or drag & drop a file here</strong></p>
+        <p style="font-size:12px;margin-top:4px;">Supports .txt and .pdf files (max 10MB)</p>
+        <input type="file" name="file" id="fileInput" accept=".txt,.pdf" style="display:none">
+        <div id="fileName" style="margin-top:10px;font-size:13px;color:var(--teal);display:none;"></div>
+      </div>
+
+      <!-- Submit -->
+      <div class="flex-gap mt-3">
+        <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">
+          <i class="fas fa-magic"></i> Analyze with AI
+        </button>
+        <button type="button" class="btn btn-ghost" onclick="clearForm()">
+          <i class="fas fa-trash"></i> Clear
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Recent History -->
+  <% if(recentItems && recentItems.length > 0){ %>
+  <div class="section-header">
+    <div class="section-title"><i class="fas fa-history" style="color:var(--teal)"></i> Recent Analyses</div>
+    <a href="/ai/history" class="btn btn-ghost" style="font-size:13px;">View all <i class="fas fa-arrow-right"></i></a>
+  </div>
+  <div class="grid-3">
+    <% recentItems.forEach(item => { %>
+    <div class="history-card">
+      <div class="flex-between mb-1">
+        <span class="badge badge-<%= item.difficulty === 'hard' ? 'red' : item.difficulty === 'easy' ? 'teal' : 'purple' %>">
+          <%= item.difficulty || 'medium' %>
+        </span>
+        <span class="text-muted" style="font-size:12px;"><%= new Date(item.createdAt).toLocaleDateString() %></span>
+      </div>
+      <div style="font-weight:600;font-size:14px;margin-bottom:8px;"><%= item.title || 'Untitled' %></div>
+      <div class="text-muted" style="font-size:13px;margin-bottom:12px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
+        <%= (item.originalText || '').substring(0, 90) %>...
+      </div>
+      <a href="/ai/result/<%= item._id %>" class="btn btn-ghost" style="font-size:13px;width:100%;justify-content:center;">
+        View Results <i class="fas fa-arrow-right"></i>
+      </a>
+    </div>
+    <% }) %>
+  </div>
+  <% } %>
+</div>
+
+<script>
+// Char counter
+const notesText = document.getElementById('notesText');
+const charCount = document.getElementById('charCount');
+notesText.addEventListener('input', () => {
+  const n = notesText.value.length;
+  charCount.textContent = n + ' characters';
+  charCount.style.color = n < 30 ? 'var(--accent)' : 'var(--teal)';
+});
+
+// File upload
+const fileInput  = document.getElementById('fileInput');
+const uploadZone = document.getElementById('uploadZone');
+const fileName   = document.getElementById('fileName');
+
+fileInput.addEventListener('change', () => {
+  if (fileInput.files[0]) {
+    fileName.textContent = '📎 ' + fileInput.files[0].name;
+    fileName.style.display = 'block';
+    uploadZone.style.borderColor = 'var(--teal)';
+  }
+});
+
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadZone.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) {
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    fileInput.files = dt.files;
+    fileName.textContent = '📎 ' + file.name;
+    fileName.style.display = 'block';
+    uploadZone.style.borderColor = 'var(--teal)';
+  }
+});
+
+// Submit loading state
+document.getElementById('analyzeForm').addEventListener('submit', () => {
+  const btn = document.getElementById('submitBtn');
+  btn.innerHTML = '<i class="fas fa-spinner spinner"></i> Analyzing...';
+  btn.disabled = true;
+});
+
+function clearForm() {
+  document.getElementById('analyzeForm').reset();
+  charCount.textContent = '0 characters';
+  fileName.style.display = 'none';
+  uploadZone.style.borderColor = '';
+}
+</script>

@@ -1,0 +1,69 @@
+<div class="animate-up">
+  <div class="flex-between mb-3">
+    <div>
+      <h1 class="page-title">Analysis History</h1>
+      <p class="page-sub">All your saved note analyses</p>
+    </div>
+    <a href="/ai/dashboard" class="btn btn-primary"><i class="fas fa-plus"></i> New Analysis</a>
+  </div>
+
+  <% if (!items || items.length === 0) { %>
+    <div class="card text-center" style="padding:60px 24px;">
+      <div style="font-size:3.5rem;margin-bottom:16px;">📭</div>
+      <h3 style="font-family:var(--font-h);margin-bottom:8px;">No analyses yet</h3>
+      <p class="text-muted mb-3">Start by pasting your study notes on the dashboard.</p>
+      <a href="/ai/dashboard" class="btn btn-primary btn-lg"><i class="fas fa-play-circle"></i> Start First Analysis</a>
+    </div>
+  <% } else { %>
+    <div class="flex-between mb-2">
+      <span class="badge badge-teal"><i class="fas fa-layer-group"></i> <%= items.length %> total</span>
+      <input type="text" id="searchInput" placeholder="🔍 Search by title..." style="padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:13px;outline:none;width:220px;">
+    </div>
+
+    <div class="grid-2" id="historyGrid">
+      <% items.forEach((item, index) => { %>
+        <div class="history-card" data-title="<%= (item.title||'').toLowerCase() %>">
+          <div class="flex-between mb-1">
+            <div class="flex-gap">
+              <span class="badge badge-<%= item.difficulty === 'hard' ? 'red' : item.difficulty === 'easy' ? 'teal' : 'purple' %>">
+                <%= item.difficulty || 'medium' %>
+              </span>
+              <span class="badge badge-purple">#<%= items.length - index %></span>
+            </div>
+            <span class="text-muted" style="font-size:12px;"><i class="fas fa-calendar-alt"></i> <%= new Date(item.createdAt).toLocaleDateString() %></span>
+          </div>
+          <div style="font-weight:600;font-size:15px;margin-bottom:6px;">
+            <i class="fas fa-file-alt" style="color:var(--teal);margin-right:6px;"></i><%= item.title || 'Untitled' %>
+          </div>
+          <div class="text-muted" style="font-size:13px;margin-bottom:10px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
+            <%= (item.originalText || '').substring(0, 100) %>...
+          </div>
+          <% if(item.keywords && item.keywords.length){ %>
+            <div class="keyword-list mb-2">
+              <% item.keywords.slice(0,4).forEach(k => { %>
+                <span class="keyword-chip" style="font-size:11px;padding:2px 8px;"><%= k %></span>
+              <% }) %>
+            </div>
+          <% } %>
+          <div class="flex-gap">
+            <a href="/ai/result/<%= item._id %>"  class="btn btn-ghost" style="font-size:13px;flex:1;justify-content:center;"><i class="fas fa-eye"></i> View</a>
+            <a href="/ai/quiz/<%= item._id %>"    class="btn btn-teal"  style="font-size:13px;flex:1;justify-content:center;"><i class="fas fa-play-circle"></i> Quiz</a>
+            <a href="/ai/export/<%= item._id %>"  class="btn btn-primary" style="font-size:13px;flex:1;justify-content:center;"><i class="fas fa-file-pdf"></i> PDF</a>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+  <% } %>
+</div>
+
+<script>
+const searchInput = document.getElementById('searchInput');
+if (searchInput) {
+  searchInput.addEventListener('input', () => {
+    const q = searchInput.value.toLowerCase();
+    document.querySelectorAll('.history-card').forEach(card => {
+      card.style.display = card.dataset.title.includes(q) ? '' : 'none';
+    });
+  });
+}
+</script>

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>%%TITLE%%</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <nav class="navbar">
+    <div class="nav-inner">
+      <a href="/" class="nav-logo">
+        <span class="logo-icon"><i class="fas fa-brain"></i></span>
+        <span class="logo-text">AI Notes <span class="logo-pro">Pro</span></span>
+      </a>
+      <div class="nav-links">
+        %%NAV_LINKS%%
+        <button class="theme-btn" id="themeBtn" aria-label="Toggle theme">
+          <i class="fas fa-moon"></i>
+        </button>
+      </div>
+      <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Menu">
+        <i class="fas fa-bars"></i>
+      </button>
+    </div>
+    <div class="mobile-menu" id="mobileMenu">
+      %%NAV_LINKS%%
+    </div>
+  </nav>
+
+  <main class="main-content">
+    %%BODY%%
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <span><i class="fas fa-graduation-cap"></i> BIRT CSE — Major Project 2025</span>
+      <span>Built by <strong>%%USER_NAME%%</strong></span>
+    </div>
+  </footer>
+
+  <script src="/js/main.js"></script>
+  <script>
+    // Theme
+    const themeBtn = document.getElementById('themeBtn');
+    const saved    = localStorage.getItem('theme') || 'light';
+    if (saved === 'dark') {
+      document.body.classList.add('dark');
+      themeBtn.innerHTML = '<i class="fas fa-sun"></i>';
+    }
+    themeBtn.addEventListener('click', () => {
+      document.body.classList.toggle('dark');
+      const isDark = document.body.classList.contains('dark');
+      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+      themeBtn.innerHTML = isDark ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+    });
+
+    // Mobile menu
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    const mobileMenu    = document.getElementById('mobileMenu');
+    mobileMenuBtn.addEventListener('click', () => {
+      mobileMenu.classList.toggle('open');
+    });
+  </script>
+</body>
+</html>

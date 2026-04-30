@@ -1,0 +1,210 @@
+<div class="animate-up">
+  <div class="flex-between mb-3">
+    <div>
+      <h1 class="page-title">Interactive Quiz</h1>
+      <p class="page-sub"><%= item.title %></p>
+    </div>
+    <a href="/ai/result/<%= item._id %>" class="btn btn-ghost"><i class="fas fa-arrow-left"></i> Back</a>
+  </div>
+
+  <!-- Quiz container -->
+  <div id="quizContainer" class="card" style="max-width:700px;margin:0 auto;">
+
+    <!-- Progress bar -->
+    <div class="flex-between mb-2">
+      <span class="text-muted" id="questionCounter">Question 1 of 5</span>
+      <span class="text-muted" id="timerDisplay"><i class="fas fa-clock"></i> 00:00</span>
+    </div>
+    <div class="progress-bar mb-3">
+      <div class="progress-fill" id="progressFill" style="width:20%"></div>
+    </div>
+
+    <!-- Question -->
+    <div id="questionText" style="font-size:1.05rem;font-weight:600;line-height:1.6;margin-bottom:20px;"></div>
+
+    <!-- Options -->
+    <div id="optionsContainer"></div>
+
+    <!-- Feedback -->
+    <div id="feedback" style="display:none;padding:12px 16px;border-radius:8px;font-size:14px;margin-bottom:16px;"></div>
+
+    <!-- Next btn -->
+    <button class="btn btn-primary btn-full" id="nextBtn" style="display:none;" onclick="nextQuestion()">
+      Next Question <i class="fas fa-arrow-right"></i>
+    </button>
+  </div>
+
+  <!-- Score screen (hidden initially) -->
+  <div id="scoreScreen" class="card" style="max-width:700px;margin:0 auto;text-align:center;display:none;">
+    <div style="font-size:4rem;margin-bottom:16px;" id="scoreEmoji">🎉</div>
+    <h2 style="font-family:var(--font-h);font-size:2rem;margin-bottom:8px;" id="scoreTitle">Quiz Complete!</h2>
+    <div style="font-size:4rem;font-family:var(--font-h);font-weight:800;color:var(--purple);margin:16px 0;" id="scoreDisplay"></div>
+    <div class="text-muted mb-3" id="scoreSubtext"></div>
+    <div class="progress-bar mb-3" style="height:12px;">
+      <div class="progress-fill" id="scoreBar" style="width:0%"></div>
+    </div>
+    <div class="grid-3 mb-3" style="text-align:center;">
+      <div class="stat-card">
+        <div class="stat-icon purple"><i class="fas fa-check"></i></div>
+        <div class="stat-num" id="correctCount">0</div>
+        <div class="stat-label">Correct</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon red"><i class="fas fa-times"></i></div>
+        <div class="stat-num" id="wrongCount">0</div>
+        <div class="stat-label">Wrong</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon teal"><i class="fas fa-clock"></i></div>
+        <div class="stat-num" id="timeTakenDisplay">0s</div>
+        <div class="stat-label">Time</div>
+      </div>
+    </div>
+    <div class="flex-gap" style="justify-content:center;">
+      <button class="btn btn-primary" onclick="restartQuiz()"><i class="fas fa-redo"></i> Retry</button>
+      <a href="/ai/result/<%= item._id %>" class="btn btn-teal"><i class="fas fa-eye"></i> View Notes</a>
+      <a href="/ai/dashboard" class="btn btn-ghost"><i class="fas fa-plus"></i> New Analysis</a>
+    </div>
+  </div>
+</div>
+
+<script>
+// Parse MCQs from EJS
+const rawMcqs = <%- JSON.stringify(item.mcqs || []) %>;
+const historyId = '<%= item._id %>';
+const historyTitle = <%- JSON.stringify(item.title || '') %>;
+
+// Parse blocks
+let questions = [];
+let block = [];
+rawMcqs.forEach(line => {
+  if (/^Q\d+:/i.test(line.trim()) && block.length) { questions.push(parseBlock(block)); block = []; }
+  block.push(line);
+});
+if (block.length) questions.push(parseBlock(block));
+questions = questions.filter(q => q && q.options.length >= 2);
+
+function parseBlock(lines) {
+  const qLine = lines[0] || '';
+  const question = qLine.replace(/^Q\d+:\s*/i, '').trim();
+  const options = lines.filter(l => /^[A-D]\)/i.test(l.trim()));
+  const ansLine = lines.find(l => /^answer:/i.test(l.trim())) || '';
+  const ansLetter = (ansLine.match(/Answer:\s*([A-D])/i) || [])[1] || 'A';
+  const correctIndex = ['A','B','C','D'].indexOf(ansLetter.toUpperCase());
+  return { question, options, correctIndex };
+}
+
+let current   = 0;
+let score     = 0;
+let answered  = false;
+let startTime = Date.now();
+let timerInterval;
+
+function startTimer() {
+  timerInterval = setInterval(() => {
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    const m = Math.floor(elapsed / 60).toString().padStart(2,'0');
+    const s = (elapsed % 60).toString().padStart(2,'0');
+    document.getElementById('timerDisplay').innerHTML = `<i class="fas fa-clock"></i> ${m}:${s}`;
+  }, 1000);
+}
+
+function renderQuestion() {
+  if (current >= questions.length) { showScore(); return; }
+  const q = questions[current];
+  answered = false;
+
+  document.getElementById('questionCounter').textContent = `Question ${current+1} of ${questions.length}`;
+  document.getElementById('progressFill').style.width = `${((current+1)/questions.length)*100}%`;
+  document.getElementById('questionText').textContent = q.question;
+  document.getElementById('feedback').style.display = 'none';
+  document.getElementById('nextBtn').style.display = 'none';
+
+  const container = document.getElementById('optionsContainer');
+  container.innerHTML = '';
+  const letters = ['A','B','C','D'];
+  q.options.forEach((opt, i) => {
+    const div = document.createElement('div');
+    div.className = 'quiz-option';
+    div.innerHTML = `<div class="quiz-letter">${letters[i]}</div><span>${opt.replace(/^[A-D]\)\s*/,'')}</span>`;
+    div.onclick = () => selectAnswer(i, div);
+    container.appendChild(div);
+  });
+}
+
+function selectAnswer(idx, el) {
+  if (answered) return;
+  answered = true;
+  const q = questions[current];
+  const allOpts = document.querySelectorAll('.quiz-option');
+  allOpts.forEach(o => o.classList.add('disabled'));
+
+  const feedback = document.getElementById('feedback');
+  if (idx === q.correctIndex) {
+    score++;
+    el.classList.add('correct');
+    feedback.style.cssText = 'display:flex;align-items:center;gap:8px;padding:12px 16px;border-radius:8px;font-size:14px;margin-bottom:16px;background:rgba(0,191,165,0.1);color:var(--teal);border:1px solid var(--teal)';
+    feedback.innerHTML = '<i class="fas fa-check-circle"></i> Correct! Well done.';
+  } else {
+    el.classList.add('wrong');
+    allOpts[q.correctIndex].classList.add('correct');
+    feedback.style.cssText = 'display:flex;align-items:center;gap:8px;padding:12px 16px;border-radius:8px;font-size:14px;margin-bottom:16px;background:rgba(255,107,107,0.1);color:var(--accent);border:1px solid var(--accent)';
+    feedback.innerHTML = `<i class="fas fa-times-circle"></i> Incorrect. Correct answer: ${q.options[q.correctIndex]}`;
+  }
+  document.getElementById('nextBtn').style.display = 'flex';
+}
+
+function nextQuestion() {
+  current++;
+  if (current >= questions.length) showScore();
+  else renderQuestion();
+}
+
+function showScore() {
+  clearInterval(timerInterval);
+  const timeTaken = Math.floor((Date.now() - startTime) / 1000);
+  const percent   = Math.round((score / questions.length) * 100);
+
+  document.getElementById('quizContainer').style.display = 'none';
+  const ss = document.getElementById('scoreScreen');
+  ss.style.display = 'block';
+
+  document.getElementById('scoreDisplay').textContent = `${score}/${questions.length}`;
+  document.getElementById('correctCount').textContent  = score;
+  document.getElementById('wrongCount').textContent    = questions.length - score;
+  document.getElementById('timeTakenDisplay').textContent = timeTaken + 's';
+  document.getElementById('scoreSubtext').textContent  = `${percent}% score · ${timeTaken} seconds`;
+
+  setTimeout(() => {
+    document.getElementById('scoreBar').style.width = percent + '%';
+  }, 100);
+
+  if (percent === 100)      { document.getElementById('scoreEmoji').textContent = '🏆'; document.getElementById('scoreTitle').textContent = 'Perfect Score!'; }
+  else if (percent >= 80)   { document.getElementById('scoreEmoji').textContent = '🎉'; document.getElementById('scoreTitle').textContent = 'Excellent!'; }
+  else if (percent >= 60)   { document.getElementById('scoreEmoji').textContent = '👍'; document.getElementById('scoreTitle').textContent = 'Good Job!'; }
+  else if (percent >= 40)   { document.getElementById('scoreEmoji').textContent = '📚'; document.getElementById('scoreTitle').textContent = 'Keep Studying!'; }
+  else                      { document.getElementById('scoreEmoji').textContent = '💪'; document.getElementById('scoreTitle').textContent = 'Try Again!'; }
+
+  // Save to DB
+  fetch('/ai/quiz/save', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ historyId, title: historyTitle, score, total: questions.length, timeTaken })
+  }).catch(e => console.error('Save quiz error:', e));
+}
+
+function restartQuiz() {
+  current = 0; score = 0; answered = false; startTime = Date.now();
+  document.getElementById('scoreScreen').style.display = 'none';
+  document.getElementById('quizContainer').style.display = 'block';
+  startTimer(); renderQuestion();
+}
+
+// Init
+if (questions.length === 0) {
+  document.getElementById('quizContainer').innerHTML = '<div class="text-center" style="padding:40px;"><div style="font-size:3rem;margin-bottom:16px;">📭</div><p class="text-muted">No quiz questions available for this note.</p><a href="/ai/result/<%= item._id %>" class="btn btn-ghost mt-2">Go Back</a></div>';
+} else {
+  startTimer();
+  renderQuestion();
+}
+</script>
