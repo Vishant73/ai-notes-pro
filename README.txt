@@ -80,9 +80,3 @@ Make sure MongoDB is running:
 ✅ Search in history
 
 
-## DEPLOYMENT (free)
-1. Push to GitHub
-2. Go to https://railway.app
-3. Connect GitHub repo
-4. Add environment variables
-5. Deploy — live URL in 2 mins!
